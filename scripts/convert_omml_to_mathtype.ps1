@@ -178,7 +178,13 @@ try {
         $end = $om.Range.End
         $latex = [string]$item.latex
         $display = [bool]$item.display
-        $wrap = if ($display) { '$$' + $latex + '$$' } else { '$' + $latex + '$' }
+        if ($latex -match '^[A-Za-z]+$') {
+            $wrap = '$\mathrm{' + $latex + '}$'
+        } elseif ($display) {
+            $wrap = '$$' + $latex + '$$'
+        } else {
+            $wrap = '$' + $latex + '$'
+        }
 
         try {
             $doc.Range($start, $end).Delete()
@@ -195,34 +201,14 @@ try {
         try { $word.Run('MTCommand_OnTexToggle', [ref]$callback) | Out-Null } catch { $err = $_.Exception.Message }
         $elapsed = 0
         $ok = $false
-        while ($elapsed -lt 6000) {
-            Start-Sleep -Milliseconds 300
-            $elapsed += 300
-            if ($doc.InlineShapes.Count -gt $beforeShapes) { Start-Sleep -Milliseconds 400; $ok = $true; break }
-        }
-
-        if (-not $ok -and $latex -match '^[A-Za-z]+$') {
-            $retryWrap = '$\mathrm{' + $latex + '}$'
-            $doc.Range($start, $start + $wrap.Length).Text = $retryWrap
-            $work = $doc.Range($start, $start + $retryWrap.Length)
-            $work.Select()
-            $beforeShapes = $doc.InlineShapes.Count
-            $callback = $null
-            try { $word.Run('MTCommand_OnTexToggle', [ref]$callback) | Out-Null } catch { $err = $_.Exception.Message }
-            $elapsed = 0
-            while ($elapsed -lt 6000) {
-                Start-Sleep -Milliseconds 300
-                $elapsed += 300
-                if ($doc.InlineShapes.Count -gt $beforeShapes) { Start-Sleep -Milliseconds 400; $ok = $true; break }
-            }
-            $wrap = $retryWrap
+        while ($elapsed -lt 3000) {
+            Start-Sleep -Milliseconds 100
+            $elapsed += 100
+            if ($doc.InlineShapes.Count -gt $beforeShapes) { $ok = $true; break }
         }
 
         if ($ok) {
             $converted++
-            $shape = Find-InlineShapeNearStart -Document $doc -Start $start -MaxStart ($start + $wrap.Length + 3)
-            if ($null -eq $shape) { $shape = $doc.InlineShapes.Item($doc.InlineShapes.Count) }
-            if ($display) { Remove-AdjacentDollars -Document $doc -Shape $shape }
             $events.Add([pscustomobject]@{index=$index;status='converted';display=$display;latex=$latex;elapsedMs=$elapsed})
         } else {
             $failed++
@@ -231,7 +217,7 @@ try {
             $events.Add([pscustomobject]@{index=$index;status='failed';message=('toggle timeout: ' + $err);latex=$latex})
         }
 
-        if ($converted -gt 0 -and $converted % 5 -eq 0) { $doc.Save() }
+        if ($converted -gt 0 -and $converted % 20 -eq 0) { $doc.Save() }
     }
 
     # Final cleanup: remove delimiter dollars adjacent to any MathType object.
@@ -288,4 +274,5 @@ try {
     $word = $null
     [GC]::Collect(); [GC]::WaitForPendingFinalizers()
 }
+
 

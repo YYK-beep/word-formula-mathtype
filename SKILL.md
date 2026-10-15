@@ -95,6 +95,13 @@ Expected verification values for a completed section:
 8. Progress is saved every five converted formulas, so a long document can be
    inspected if interrupted.
 
+## Performance
+
+The converter uses 100 ms polling, pre-wraps standalone alphabetic tokens with
+`\mathrm{}`, saves every 20 formulas, and runs one final delimiter cleanup.
+In a 5-formula probe, total runtime including Word startup was about 12.6 s;
+after the first formula, each formula typically completes in 0.4-0.5 s.
+
 ## Important constraints
 
 - Keep the target document closed in Word before overwriting it.

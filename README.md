@@ -80,6 +80,17 @@ Expected result:
 | `scripts/convert_omml_to_mathtype.ps1` | Delete OMaths, convert their LaTeX to MathType, clean delimiters, log results |
 | `scripts/verify_mathtype.ps1` | Verify that the selected range has no OMML, no `$`, and contains MathType objects |
 
+## Performance
+
+- 100 ms polling instead of 300 ms intervals.
+- Standalone alphabetic formulas are pre-wrapped as `\mathrm{...}` instead of
+  being attempted once and retried after a timeout.
+- The document is saved every 20 formulas, not every 5.
+- Delimiter `$` cleanup runs once at the end instead of after every formula.
+
+In a 5-formula probe, total runtime including Word startup was about 12.6 s;
+after the first formula, each formula typically completes in 0.4-0.5 s.
+
 ## Design notes
 
 - The source is copied first; the original document is never edited in place.
