@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)][string]$SourcePath,
     [string]$TargetPath,
     [string]$MapPath,
@@ -96,12 +96,17 @@ function Remove-AdjacentDollars {
     param($Document, $Shape)
     while ($true) {
         $removed = $false
-        if ($Shape.Range.Start -gt 0) {
-            $lead = $Document.Range($Shape.Range.Start - 1, $Shape.Range.Start)
+        $shapeStart = [int]$Shape.Range.Start
+        $shapeEnd = [int]$Shape.Range.End
+        $contentEnd = [int]$Document.Content.End
+        if ($shapeStart -gt 0) {
+            $lead = $Document.Range($shapeStart - 1, $shapeStart)
             if ($lead.Text -eq '$') { $lead.Text = ''; $removed = $true }
         }
-        $trail = $Document.Range($Shape.Range.End, $Shape.Range.End + 1)
-        if ($trail.Text -eq '$') { $trail.Text = ''; $removed = $true }
+        if ($shapeEnd -lt $contentEnd) {
+            $trail = $Document.Range($shapeEnd, [Math]::Min($shapeEnd + 1, $contentEnd))
+            if ($trail.Text -eq '$') { $trail.Text = ''; $removed = $true }
+        }
         if (-not $removed) { break }
     }
 }
@@ -176,7 +181,10 @@ try {
         try { $om = $doc.OMaths.Item($index) } catch { $failed++; $events.Add([pscustomobject]@{index=$index;status='failed';message='OMath missing'}); continue }
         $start = $om.Range.Start
         $end = $om.Range.End
-        $latex = [string]$item.latex
+        $latex = ([string]$item.latex).Trim()
+        while ($latex.EndsWith('\')) {
+            $latex = $latex.Substring(0, $latex.Length - 1).TrimEnd()
+        }
         $display = [bool]$item.display
         if ($latex -match '^[A-Za-z]+$') {
             $wrap = '$\mathrm{' + $latex + '}$'
@@ -233,6 +241,15 @@ try {
     }
 
     $doc.Save()
+    # Formula replacement changes document length; recompute the selected range
+    # before the final measurements instead of reusing stale Word Range offsets.
+    if ([string]::IsNullOrWhiteSpace($SectionHeading)) {
+        $sectionStart = 0
+        $sectionEnd = [int]$doc.Content.End
+    } else {
+        $sectionStart = Find-HeadingStart -Document $doc -Heading $SectionHeading
+        $sectionEnd = Find-SectionEnd -Document $doc -Start $sectionStart -EndHeadingText $EndHeading
+    }
     $remainingOMaths = 0
     for ($i = 1; $i -le $doc.OMaths.Count; $i++) {
         $om = $doc.OMaths.Item($i)

@@ -1,45 +1,89 @@
 # Troubleshooting
 
-## `MTCommand_OnTexToggle` is not available
+## MathType add-in is not available
 
-MathType’s Word add-in is not loaded. Confirm that
-`MathType Commands 2016.dotm` exists in Word’s `STARTUP` folder and restart
-Word. The skill stops instead of falling back to OMML because the requested
-result is MathType objects.
+Confirm that `Equation.DSMT4` is registered and that
+`MathType Commands 2016.dotm` exists in Word's `STARTUP` folder. Restart Word.
+The converter stops rather than silently falling back to OMML.
 
-## Word is locked or reports an invalid file name
+## `MTCommand_OnTexToggle` times out
 
-Close the target document in Word before running the converter. The converter
-always writes to `TargetPath`; do not pass the same path for source and target.
+- Keep the target document closed before overwriting it.
+- Do not run two conversions against the same target at once.
+- Run a small probe with `-MaxFormulas 2`.
+- Check the `.log.json` for the formula and error message.
+- Some malformed LaTeX may need manual correction in MathType.
 
-## Conversion is slow
+## OCR model returns HTTP 404
 
-Each formula is converted through MathType’s OLE/TeX path. A document with
-dozens of formulas can take several minutes. Progress is saved every five
-formulas, and the script logs `elapsedMs` for each formula.
+The provider accepted the API key but the configured model name does not exist.
+Set a valid model explicitly:
 
-## A standalone formula such as `Ber` or `KL` fails
+```powershell
+$env:FORMULA_OCR_MODEL = "sensenova-6.8-flash-lite"
+```
 
-MathType may not create an equation object for a lone word. The converter
-automatically retries single alphabetic tokens as `\mathrm{...}`. If a custom
-formula still fails, inspect the `.log.json` file and convert that formula
-manually in Word.
+or pass `-OcrModel`. At the time of testing, SenseNova exposed
+`sensenova-6.8-flash-lite`, not the older `6.7` default.
 
-## Residual `$` characters remain
+## OCR says an ordinary chart is a formula
 
-The converter removes `$` delimiters adjacent to MathType shapes and converts
-failed text back to plain LaTeX. If `$` still appears in the verification
-report, open the document and inspect the listed section. Do not use a global
-find-and-replace if the document intentionally contains dollar amounts.
+Use `-DryRun`, inspect the map, and set `is_formula` to `false` for that image.
+Then rerun with `-OcrBackend Manual` and `-ManualOcrMapPath`.
+`-ImagePolicy AltText` is the most conservative policy.
 
-## Pandoc cannot read OMML
+## An unlabelled formula image is skipped
 
-Install `pypandoc-binary` with the setup script. If pandoc still cannot extract
-the equations, use the `word-latex-mathtype` skill when the formulas are plain
-LaTeX text rather than Word OMath objects.
+Use one of:
 
-## Tab stops after conversion
+```powershell
+-ImagePolicy All
+-ImageNumbers "3,7"
+```
 
-Display equations normally use the paragraph’s existing center and right tab
-stops: the first tab centers the formula, and the second tab right-aligns the
-equation number. This is expected and does not indicate a conversion failure.
+The image will still be OCR-classified before replacement.
+
+## `remainingDollarCharacters` is non-zero
+
+Raw dollar signs may be legitimate currency. Check
+`remainingFormulaDelimiters`. If it is zero and the document intentionally
+contains prices, the extraction is complete.
+
+## The final formula still has a stray delimiter
+
+The converter waits for all MathType objects to stabilize, then performs two
+document-wide delimiter-cleanup passes. If a custom document still shows a
+delimiter:
+
+1. Inspect the `.log.json` for that formula.
+2. Confirm the formula is a real `Equation.DSMT4` object.
+3. Check that no dollar is inside the MathType equation itself.
+4. Re-run with `-Force`.
+
+## Cases or matrices look wrong
+
+Pandoc sometimes emits:
+
+```latex
+\left\{ \begin{matrix} ... \end{matrix} \right.\
+```
+
+The converter normalizes common cases output to `\begin{cases}...\end{cases}`
+and removes the trailing control backslash. Unsupported `aligned` inside an
+outer cases expression may still need manual conversion.
+
+## Word is locked or reports an invalid filename
+
+Close the source and target documents, or use a different `-TargetPath`.
+
+## PDF or legacy Equation Editor input
+
+Automated PDF decomposition and legacy Equation Editor 3.0 conversion are not
+provided. Crop each PDF formula to an image or supply reviewed LaTeX, then use
+the image/manual workflow.
+
+## Formula contains Chinese text
+
+MathType's TeX toggle can be unstable with CJK inside `\text{...}`. For
+publication-critical CJK formulas, review the result in Word; split CJK labels
+from the mathematical expression when necessary.

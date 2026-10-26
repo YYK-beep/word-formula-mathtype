@@ -1,4 +1,4 @@
-param(
+﻿param(
     [switch]$InstallMissing = $true
 )
 
@@ -14,8 +14,24 @@ function Get-CommandPath {
     return $null
 }
 
+function Resolve-WordPath {
+    $fromPath = Get-CommandPath -Names @('WINWORD.EXE', 'winword')
+    if ($fromPath) { return $fromPath }
+    $appPath = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\WINWORD.EXE' -ErrorAction SilentlyContinue
+    if ($null -ne $appPath -and -not [string]::IsNullOrWhiteSpace($appPath.'(default)')) {
+        return $appPath.'(default)'
+    }
+    foreach ($candidate in @(
+        'C:\Program Files\Microsoft Office\Root\Office16\WINWORD.EXE',
+        'C:\Program Files (x86)\Microsoft Office\Root\Office16\WINWORD.EXE'
+    )) {
+        if (Test-Path -LiteralPath $candidate) { return $candidate }
+    }
+    return $null
+}
+
 $result = [ordered]@{}
-$result.word = Get-CommandPath -Names @('WINWORD.EXE', 'winword')
+$result.word = Resolve-WordPath
 $result.python = Get-CommandPath -Names @('python', 'py', 'python3')
 
 $result.mathTypeRegistered = Test-Path 'Registry::HKEY_CLASSES_ROOT\Equation.DSMT4'
@@ -28,6 +44,12 @@ $result.mathTypeWordAddIn = ($startupCandidates | Where-Object { Test-Path -Lite
 
 $pythonExe = $result.python
 $result.pypandoc = $false
+$result.visionOcrConfigured = [bool](
+    $env:FORMULA_OCR_API_KEY -or $env:SN_VISION_API_KEY -or $env:SN_CHAT_API_KEY -or $env:SN_API_KEY -or
+    ($env:MATHPIX_APP_ID -and $env:MATHPIX_APP_KEY)
+)
+$result.defaultOcrModel = if ($env:FORMULA_OCR_MODEL) { $env:FORMULA_OCR_MODEL } elseif ($env:SN_VISION_MODEL) { $env:SN_VISION_MODEL } else { 'sensenova-6.8-flash-lite' }
+
 if ($pythonExe) {
     & $pythonExe -c "import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('pypandoc') else 1)" 1>$null 2>$null
     $result.pypandoc = ($LASTEXITCODE -eq 0)
@@ -41,7 +63,7 @@ if ($pythonExe) {
 
 [pscustomobject]$result | Format-List
 
-if (-not $result.word) { Write-Warning 'Microsoft Word was not found on PATH.' }
+if (-not $result.word) { Write-Warning 'Microsoft Word was not found. Install Word desktop.' }
 if (-not $result.mathTypeRegistered) { Write-Warning 'Equation.DSMT4 is not registered. Install MathType 7 first.' }
 if (-not $result.mathTypeWordAddIn) { Write-Warning 'MathType Commands 2016.dotm was not found in Word STARTUP.' }
 if (-not $result.python) { Write-Warning 'Python 3 was not found on PATH.' }

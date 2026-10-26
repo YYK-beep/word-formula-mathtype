@@ -1,33 +1,28 @@
-# word-omml-mathtype
+# word-formula-mathtype
 
-A Codex skill for converting **existing Word OMML equations** in a `.docx`
-into genuine **MathType OLE objects** on Windows.
+A Windows Codex skill for converting formula sources into genuine **MathType
+OLE objects** inside Microsoft Word.
 
-It handles display equations, inline formulas, section-scoped conversion,
-residual `$` cleanup, and verification. It was developed and tested against a
-document containing 71 OMML equations.
+## Supported inputs
 
-## Install as a Codex skill
+- Existing Word **OMML** equations
+- **LaTeX text** in a DOCX: `$...$`, `$$...$$`, `\(...\)`, `\[...\]`
+- `.tex`, Markdown, HTML, and MathML files
+- Formula **screenshots or photos** embedded in a DOCX
+- A standalone formula image file
 
-Clone this repository into a skills folder, for example:
-
-```powershell
-git clone https://github.com/YYK-beep/word-omml-mathtype.git `
-  "$env:USERPROFILE\.codex\skills\word-omml-mathtype"
-```
-
-The folder must contain `SKILL.md` at its root. Codex can then discover the
-skill by name or description.
+Image formulas are recognized to LaTeX, logged for review, and then converted to
+MathType. The skill does not silently fall back to Word-native OMML equations.
 
 ## Requirements
 
-- Windows
-- Microsoft Word desktop
-- MathType 7 with `MathType Commands 2016.dotm` loaded in Word
-- Python 3
-- `pypandoc-binary` or `pandoc`
+- Windows with Microsoft Word desktop
+- MathType 7 with the Word add-in loaded
+- Python 3.10+
+- `pypandoc-binary` or Pandoc
+- Vision OCR credentials, Mathpix credentials, or a manual OCR map for images
 
-Install or verify the runtime dependencies:
+Check the environment:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/setup_environment.ps1
@@ -35,83 +30,132 @@ powershell -ExecutionPolicy Bypass -File scripts/setup_environment.ps1
 
 ## Quick start
 
-Convert only one section of an application or thesis:
+### Any formula source inside a DOCX
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/convert_omml_to_mathtype.ps1 `
+powershell -ExecutionPolicy Bypass -File scripts/convert_any_formula_to_mathtype.ps1 `
   -SourcePath "D:\docs\input.docx" `
   -TargetPath "D:\docs\input_mathtype.docx" `
-  -SectionHeading "四、课题研究内容和工作方案" `
-  -EndHeading "五、基础条件和优势"
+  -Mode Auto `
+  -ImagePolicy Auto
 ```
 
-Run a small probe first:
+### Existing OMML only
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/convert_omml_to_mathtype.ps1 `
   -SourcePath "D:\docs\input.docx" `
-  -TargetPath "D:\docs\probe.docx" `
-  -SectionHeading "四、课题研究内容和工作方案" `
-  -EndHeading "五、基础条件和优势" `
-  -MaxFormulas 2
+  -TargetPath "D:\docs\input_mathtype.docx"
 ```
 
-Verify:
+### Formula photo
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/convert_any_formula_to_mathtype.ps1 `
+  -SourcePath "D:\docs\formula.jpg" `
+  -TargetPath "D:\docs\formula_mathtype.docx"
+```
+
+### TeX file
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/convert_any_formula_to_mathtype.ps1 `
+  -SourcePath "D:\docs\paper.tex" `
+  -TargetPath "D:\docs\paper_mathtype.docx"
+```
+
+### Dry-run and review
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/convert_any_formula_to_mathtype.ps1 `
+  -SourcePath "D:\docs\input.docx" `
+  -Mode Images `
+  -ImagePolicy Auto `
+  -DryRun
+```
+
+The dry-run JSON records image numbers, recognized LaTeX, confidence, and notes.
+Correct or approve the map, then use:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/convert_any_formula_to_mathtype.ps1 `
+  -SourcePath "D:\docs\input.docx" `
+  -TargetPath "D:\docs\input_mathtype.docx" `
+  -Mode Images `
+  -OcrBackend Manual `
+  -ManualOcrMapPath "D:\docs\reviewed_ocr.json"
+```
+
+### Verification
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/verify_mathtype.ps1 `
-  -Path "D:\docs\input_mathtype.docx" `
-  -SectionHeading "四、课题研究内容和工作方案" `
-  -EndHeading "五、基础条件和优势"
+  -Path "D:\docs\input_mathtype.docx"
 ```
 
-Expected result:
+Expected results:
 
-- `omathsInRange : 0`
-- `mathTypeShapes : <number of converted formulas>`
-- `remainingDollarCharacters : 0`
+- `omathsInRange = 0`
+- `mathTypeShapes > 0`
+- `remainingFormulaDelimiters = 0`
+- `remainingRawLatexParagraphs = 0`
+
+Currency such as `$5` is reported separately from formula delimiters.
+
+## OCR configuration
+
+Default OpenAI-compatible VLM backend:
+
+```powershell
+$env:FORMULA_OCR_API_KEY = "..."
+$env:FORMULA_OCR_BASE_URL = "https://token.sensenova.cn/v1"
+$env:FORMULA_OCR_MODEL = "sensenova-6.8-flash-lite"
+```
+
+Aliases from the SenseNova environment are also accepted:
+
+- `SN_VISION_API_KEY` / `SN_CHAT_API_KEY` / `SN_API_KEY`
+- `SN_VISION_BASE_URL` / `SN_CHAT_BASE_URL` / `SN_BASE_URL`
+- `SN_VISION_MODEL` / `SN_CHAT_MODEL`
+
+Mathpix:
+
+```powershell
+$env:MATHPIX_APP_ID = "..."
+$env:MATHPIX_APP_KEY = "..."
+```
+
+Use `-OcrBackend Mathpix` or `-OcrBackend Vlm`.
+
+## Design notes
+
+- The source document is always copied or imported to a new output.
+- OMML extraction uses Pandoc's document order.
+- Image OCR classifies first and only replaces images accepted as formulas.
+- Pandoc cases output is normalized to a MathType-friendly `cases` environment.
+- Final delimiter cleanup runs after all OLE objects have stabilized.
+- Logs include OCR decisions, normalized LaTeX, timing, and failures.
 
 ## Scripts
 
 | Script | Purpose |
 | --- | --- |
-| `scripts/setup_environment.ps1` | Check Word, MathType, Python and pandoc/pypandoc |
-| `scripts/extract_math_map.py` | Extract ordered LaTeX math nodes from a DOCX using pandoc |
-| `scripts/convert_omml_to_mathtype.ps1` | Delete OMaths, convert their LaTeX to MathType, clean delimiters, log results |
-| `scripts/verify_mathtype.ps1` | Verify that the selected range has no OMML, no `$`, and contains MathType objects |
-
-## Performance
-
-- 100 ms polling instead of 300 ms intervals.
-- Standalone alphabetic formulas are pre-wrapped as `\mathrm{...}` instead of
-  being attempted once and retried after a timeout.
-- The document is saved every 20 formulas, not every 5.
-- Delimiter `$` cleanup runs once at the end instead of after every formula.
-
-In a 5-formula probe, total runtime including Word startup was about 12.6 s;
-after the first formula, each formula typically completes in 0.4-0.5 s.
-
-## Design notes
-
-- The source is copied first; the original document is never edited in place.
-- Conversion processes OMaths from last to first so earlier ranges remain stable.
-- Progress is saved every five formulas.
-- Single alphabetic formulas such as `Ber` or `KL` are retried with
-  `\mathrm{}` because MathType’s TeX toggle may otherwise refuse to create an
-  object for a standalone word.
-- Display equation numbers remain as normal text; formulas use the existing
-  center and right tab stops.
+| `scripts/setup_environment.ps1` | Environment validation |
+| `scripts/convert_any_formula_to_mathtype.ps1` | Unified converter |
+| `scripts/ocr_formula_image.py` | Image formula OCR |
+| `scripts/convert_omml_to_mathtype.ps1` | Legacy OMML-only converter |
+| `scripts/extract_math_map.py` | OMML-to-LaTeX mapping |
+| `scripts/verify_mathtype.ps1` | Output verification |
 
 ## Limitations
 
-- Windows and Word desktop only.
-- MathType 7 is required for real MathType objects.
-- Pandoc must be able to read the document’s OMML equations.
-- Complex nested or unusually malformed equations may still require manual
-  review after conversion.
-- The script cannot convert formulas in floating text boxes unless they are
-  part of the document story processed by Word.
+- Microsoft Word desktop and MathType 7 are mandatory.
+- Handwritten/ambiguous images require review.
+- PDF pages and legacy Equation Editor 3.0 objects are not automatically
+  decomposed into individual formulas.
+- Complex malformed formulas may require manual adjustment in MathType.
 
 ## License
 
 MIT
+

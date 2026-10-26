@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)][string]$Path,
     [string]$SectionHeading,
     [string]$EndHeading
@@ -36,6 +36,48 @@ function Find-SectionEnd {
     return $Document.Content.End
 }
 
+function Test-HasFormulaSignature {
+    param([string]$Text)
+    if ([string]::IsNullOrWhiteSpace($Text)) { return $false }
+    return ($Text -match '\\[A-Za-z]+' -or $Text -match '[_^][{A-Za-z0-9\\]' -or
+            $Text -match '[=<>]' -or $Text -match '\\begin\{' -or $Text -match '\{.*\}')
+}
+
+function Get-CleanParagraphText {
+    param($Paragraph)
+    return ($Paragraph.Range.Text -replace '[\u0001\u0007\u000b\r\n]+$', '' -replace '[\u0001\u0007\u000b]', '')
+}
+
+function Get-RemainingFormulaTextCounts {
+    param($Document, [int]$Start, [int]$End)
+    $delimiterCount = 0
+    $rawLatexParagraphs = 0
+    $patterns = @(
+        '\$\$(?<body>[\s\S]+?)\$\$',
+        '(?<!\$)\$(?!\$)(?<body>[\s\S]+?)(?<!\$)\$(?!\$)',
+        '\\\[(?<body>[\s\S]+?)\\\]',
+        '\\\((?<body>[\s\S]+?)\\\)'
+    )
+    $rawCommand = '\\(?:frac|sqrt|sum|prod|int|iint|iiint|lim|begin|alpha|beta|gamma|delta|nabla|partial|mathrm|mathbf|mathcal|left|right|text)\b'
+    foreach ($paragraph in $Document.Paragraphs) {
+        if ($paragraph.Range.End -le $Start -or $paragraph.Range.Start -ge $End) { continue }
+        $body = Get-CleanParagraphText -Paragraph $paragraph
+        $hasDelimitedFormula = $false
+        foreach ($pattern in $patterns) {
+            foreach ($match in [regex]::Matches($body, $pattern)) {
+                if (Test-HasFormulaSignature -Text $match.Groups['body'].Value) {
+                    $delimiterCount++
+                    $hasDelimitedFormula = $true
+                }
+            }
+        }
+        if (-not $hasDelimitedFormula -and $body -match $rawCommand -and (Test-HasFormulaSignature -Text $body)) {
+            $rawLatexParagraphs++
+        }
+    }
+    return [pscustomobject]@{ DelimiterCount = $delimiterCount; RawLatexParagraphs = $rawLatexParagraphs }
+}
+
 $path = (Resolve-Path -LiteralPath $Path).Path
 $word = $null
 $doc = $null
@@ -66,14 +108,17 @@ try {
 
     $text = $doc.Range($start, $end).Text
     $dollarCount = ([regex]::Matches($text, '\$')).Count
+    $remaining = Get-RemainingFormulaTextCounts -Document $doc -Start $start -End $end
     $result = [pscustomobject]@{
         path = $path
         sectionHeading = $SectionHeading
         omathsInRange = $omaths
         mathTypeShapes = $mathTypeShapes
         otherInlineShapes = $otherShapes
+        remainingFormulaDelimiters = $remaining.DelimiterCount
+        remainingRawLatexParagraphs = $remaining.RawLatexParagraphs
         remainingDollarCharacters = $dollarCount
-        isMathTypeOnly = ($omaths -eq 0 -and $dollarCount -eq 0 -and $mathTypeShapes -gt 0)
+        isMathTypeOnly = ($omaths -eq 0 -and $remaining.DelimiterCount -eq 0 -and $remaining.RawLatexParagraphs -eq 0 -and $mathTypeShapes -gt 0)
     }
     $result | Format-List
 } finally {

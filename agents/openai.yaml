@@ -1,5 +1,6 @@
 interface:
-  display_name: "Word OMML MathType"
-  short_description: "Convert existing Word OMML equations into MathType objects"
+  display_name: "Word Formula to MathType"
+  short_description: "Convert OMML, LaTeX, TeX files, and formula images to MathType in Word"
   brand_color: "#7C3AED"
-  default_prompt: "Use $word-omml-mathtype to convert the OMML equations in a Word .docx file into MathType objects, then verify the result."
+  default_prompt: "Use $word-formula-mathtype to convert the OMML, LaTeX text, TeX file, or formula screenshots/photos in a Word workflow into genuine MathType objects, then verify the result."
+
