@@ -1,3 +1,26 @@
+## Mandatory preflight fails
+
+Run the checker directly:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/setup_environment.ps1 -Json
+```
+
+The summary lists a `missingRequired` array and a per-check `status`. Do not
+continue the conversion until all required checks are `PASS`.
+
+Common failures:
+
+- MathType is not registered: install MathType 7 and register `Equation.DSMT4`.
+- `MathType Commands 2016.dotm` is missing: repair/reinstall the MathType Word
+  add-in and restart Word.
+- Word version is below 16: install desktop Word 2016 or later.
+- Python is below 3.10: install Python 3.10+.
+- Pandoc is below 3.0: install `pypandoc-binary` or Pandoc 3.x.
+- Image workflow has no OCR: configure VLM/Mathpix credentials or use
+  `-OcrBackend Manual` with `-ManualOcrMapPath`.
+
+Use `-SkipPreflight` only after manually verifying these conditions.
 # Troubleshooting
 
 ## MathType add-in is not available
@@ -87,3 +110,4 @@ the image/manual workflow.
 MathType's TeX toggle can be unstable with CJK inside `\text{...}`. For
 publication-critical CJK formulas, review the result in Word; split CJK labels
 from the mathematical expression when necessary.
+

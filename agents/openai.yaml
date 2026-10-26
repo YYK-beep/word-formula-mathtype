@@ -1,6 +1,5 @@
 interface:
   display_name: "Word Formula to MathType"
-  short_description: "Convert OMML, LaTeX, TeX files, and formula images to MathType in Word"
+  short_description: "Convert OMML, LaTeX, TeX, and formula images to MathType with mandatory preflight"
   brand_color: "#7C3AED"
-  default_prompt: "Use $word-formula-mathtype to convert the OMML, LaTeX text, TeX file, or formula screenshots/photos in a Word workflow into genuine MathType objects, then verify the result."
-
+  default_prompt: "Use $word-formula-mathtype for mathematical modeling papers, theses, reviews, course designs, or other Word writing. Run the mandatory environment preflight first, then convert the supported OMML, LaTeX, TeX, or formula-image inputs to genuine MathType objects and verify the result."

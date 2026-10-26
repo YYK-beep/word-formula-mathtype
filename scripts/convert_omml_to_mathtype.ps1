@@ -7,7 +7,8 @@
     [int]$MaxFormulas = 0,
     [string]$PandocPath,
     [string]$PythonExe = "python",
-    [switch]$Force
+    [switch]$Force,
+    [switch]$SkipPreflight
 )
 
 Set-StrictMode -Version Latest
@@ -15,6 +16,7 @@ $ErrorActionPreference = 'Stop'
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $extractScript = Join-Path $scriptDir 'extract_math_map.py'
+$setupScript = Join-Path $scriptDir 'setup_environment.ps1'
 
 function Assert-FileClosed {
     param([string]$Path, [string]$Label)
@@ -24,6 +26,21 @@ function Assert-FileClosed {
         $stream.Close()
     } catch {
         throw "$Label is locked. Close it in Word and try again: $Path"
+    }
+}
+
+function Invoke-Preflight {
+    if ($SkipPreflight) { return }
+    $windowsPowerShell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    if (-not (Test-Path -LiteralPath $windowsPowerShell)) {
+        $windowsPowerShell = (Get-Command powershell.exe -ErrorAction Stop).Source
+    }
+    $arguments = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $setupScript, '-OcrBackend', 'None')
+    if (-not [string]::IsNullOrWhiteSpace($PythonExe)) { $arguments += @('-PythonExe', $PythonExe) }
+    if (-not [string]::IsNullOrWhiteSpace($PandocPath)) { $arguments += @('-PandocPath', $PandocPath) }
+    & $windowsPowerShell @arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Preflight failed. Install the missing required tools or use -SkipPreflight only after a manual environment check.'
     }
 }
 
@@ -123,6 +140,7 @@ if ((Test-Path -LiteralPath $TargetPath) -and -not $Force) {
     throw "Target exists. Pass -Force to overwrite: $TargetPath"
 }
 Assert-FileClosed -Path $TargetPath -Label 'Target document'
+Invoke-Preflight
 
 if ([string]::IsNullOrWhiteSpace($MapPath)) {
     $MapPath = Join-Path ([IO.Path]::GetTempPath()) ("omml_math_map_" + [guid]::NewGuid().ToString('N') + '.json')

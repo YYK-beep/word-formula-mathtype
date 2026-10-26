@@ -1,6 +1,6 @@
 ---
 name: word-formula-mathtype
-description: "Convert formula sources into genuine MathType OLE objects in Word on Windows. Supports existing OMML equations, LaTeX text in DOCX, TeX/Markdown/HTML/MathML files, and formula screenshots or photos via OCR, with section scoping, dry-run mapping, delimiter cleanup, and verification. 将 Word OMML、TeX 文本、TeX 文件、公式截图/照片统一转换为 Word 中的 MathType 公式对象。"
+description: "Convert OMML, LaTeX text, TeX/Markdown/HTML/MathML files, and formula screenshots or photos into genuine MathType OLE objects in Windows Word for mathematical modeling papers, theses, reviews, course designs, and other Word writing. Includes mandatory preflight, reviewable OCR mapping, delimiter cleanup, and verification. 将数学建模、毕业论文、综述论文、课程设计等 Word 写作中的多种公式形式统一转换为 MathType，并在开始前自动检查依赖环境。
 ---
 
 # Word Formula to MathType
@@ -22,23 +22,53 @@ MathType object, not a picture or a Word-native equation.
 
 The skill never silently falls back to OMML when MathType is requested.
 
-## Requirements
+## Use cases
 
-- Windows
-- Microsoft Word desktop
-- MathType 7 with `MathType Commands 2016.dotm` loaded in Word
-- Python 3.10+
-- `pypandoc-binary` or pandoc on `PATH`
-- For image OCR, one of:
-  - An OpenAI-compatible vision endpoint
-  - A Mathpix account
-  - A reviewed manual OCR map
+Use this skill for Word-based mathematical modeling papers, undergraduate and
+graduate theses, review articles, journal/conference manuscripts, course
+designs, experiment reports, and project proposals where formulas come from a
+mixture of Word equations, LaTeX, TeX files, screenshots, or photos.
 
-Run the environment check first:
+## Support conditions
+
+| Component | Requirement | Tested |
+| --- | --- | --- |
+| Windows | Windows 10/11 | Windows 11, 10.0.22631 |
+| PowerShell | 5.1+ | 5.1.22621.6133 |
+| Microsoft Word | Desktop Word 2016+ | Office 2021, 16.0.20527.20088 |
+| MathType | 7.x; `Equation.DSMT4` registered | MathType 7.12.3 |
+| MathType Word add-in | `MathType Commands 2016.dotm` loaded | Present |
+| Python | 3.10+ | 3.12.3 |
+| Pandoc | 3.x, installed directly or via `pypandoc-binary` | 3.9 |
+| Image OCR | Optional: VLM API, Mathpix, or Manual OCR map | SenseNova 6.8 Flash-Lite |
+
+## Mandatory preflight before work
+
+Before any conversion, run and verify:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/setup_environment.ps1
+powershell -ExecutionPolicy Bypass -File scripts/setup_environment.ps1 -Json
 ```
+
+The unified converter and the legacy OMML converter run this preflight
+automatically before editing or copying the output. The preflight checks
+PowerShell, Word, MathType registration/version, the MathType Word add-in,
+Python, Pandoc, and OCR configuration. A failed required check exits non-zero
+and the conversion stops.
+
+If the preflight fails, report the missing dependency and stop. Do not silently
+fall back to Word-native equations. `-SkipPreflight` is only for users who have
+already completed and recorded a manual environment check.
+
+For an image workflow that requires an API, preflight must also pass:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/setup_environment.ps1 `
+  -RequireOcr -OcrBackend Vlm
+```
+
+Use `-OcrBackend Mathpix` for Mathpix or `-OcrBackend Manual` with a reviewed
+OCR map.
 
 ### Vision OCR configuration
 
@@ -65,11 +95,13 @@ $env:MATHPIX_APP_KEY = "..."
 
 ## Recommended workflow
 
+0. Run the mandatory preflight and stop if any required check fails.
 1. Work on a copy; never overwrite the source DOCX.
 2. For a document with many image formulas, run `-DryRun` first and review the OCR map.
 3. Run the conversion.
 4. Run verification.
 5. Open representative inline, display, matrix, cases, and image-derived formulas in Word.
+6. Review the conversion log and report any failed or low-confidence items.
 
 ## Quick start
 
@@ -200,6 +232,7 @@ characters from formula delimiters.
 | `-ImageNumbers "1,3"` | Explicit Word inline-shape numbers |
 | `-DryRun` | Recognize and plan without modifying the document |
 | `-KeepWorkFiles` | Keep extracted images and OCR JSON for inspection |
+| `-SkipPreflight` | Skip automatic preflight only after a manual environment check |
 
 ## Supported source files
 
@@ -224,6 +257,15 @@ characters from formula delimiters.
    environment, and dangerous trailing control characters are removed.
 7. Delimiter cleanup runs only after all OLE objects have stabilized.
 8. A JSON log records every conversion and OCR decision.
+
+## Test evidence
+
+A reproducible 12-formula test is included under
+`examples/formula-speed-test/`: input DOCX, source text, output MathType DOCX,
+output PDF, conversion log, benchmark report, and page previews. The tested run
+converted 12/12 formulas with 12 MathType objects, zero remaining OMML, and no
+remaining formula delimiters. End-to-end time was 23.881 seconds including mandatory
+preflight on the documented test machine; the per-formula average was 0.700 s.
 
 ## Main scripts
 

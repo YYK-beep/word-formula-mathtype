@@ -1,0 +1,86 @@
+{
+    "status":  "PASS",
+    "checkedAt":  "2026-10-26T22:00:41",
+    "os":  "Microsoft Windows NT 10.0.22631.0",
+    "powershell":  "5.1.22621.6133",
+    "word":  "C:\\Program Files\\Microsoft Office\\Root\\Office16\\WINWORD.EXE",
+    "wordVersion":  "16.0.20527.20088",
+    "mathTypeVersion":  "7.12.3",
+    "mathTypeAddIn":  "C:\\Program Files\\Microsoft Office\\root\\Office16\\STARTUP\\MathType Commands 2016.dotm",
+    "python":  "D:\\Python312\\python.exe",
+    "pythonVersion":  "3.12.3",
+    "pandoc":  "C:\\Users\\86132\\AppData\\Roaming\\Python\\Python312\\site-packages\\pypandoc\\files\\pandoc.exe",
+    "pandocVersion":  "pandoc 3.9",
+    "pypandocInstalled":  true,
+    "ocrBackend":  "Vlm",
+    "ocrConfigured":  true,
+    "missingRequired":  [
+
+                        ],
+    "checks":  [
+                   {
+                       "id":  "powershell",
+                       "name":  "Windows PowerShell",
+                       "required":  true,
+                       "passed":  true,
+                       "status":  "PASS",
+                       "detail":  "5.1.22621.6133"
+                   },
+                   {
+                       "id":  "word",
+                       "name":  "Microsoft Word desktop 2016+",
+                       "required":  true,
+                       "passed":  true,
+                       "status":  "PASS",
+                       "detail":  "C:\\Program Files\\Microsoft Office\\Root\\Office16\\WINWORD.EXE (16.0.20527.20088)"
+                   },
+                   {
+                       "id":  "mathtype-registration",
+                       "name":  "MathType 7 OLE registration",
+                       "required":  true,
+                       "passed":  true,
+                       "status":  "PASS",
+                       "detail":  "Equation.DSMT4 registered; version 7.12.3; D:\\APP\\MathType.exe"
+                   },
+                   {
+                       "id":  "mathtype-version",
+                       "name":  "MathType 7.x version",
+                       "required":  true,
+                       "passed":  true,
+                       "status":  "PASS",
+                       "detail":  "7.12.3"
+                   },
+                   {
+                       "id":  "mathtype-word-addin",
+                       "name":  "MathType Word add-in",
+                       "required":  true,
+                       "passed":  true,
+                       "status":  "PASS",
+                       "detail":  "C:\\Program Files\\Microsoft Office\\root\\Office16\\STARTUP\\MathType Commands 2016.dotm"
+                   },
+                   {
+                       "id":  "python",
+                       "name":  "Python 3.10+",
+                       "required":  true,
+                       "passed":  true,
+                       "status":  "PASS",
+                       "detail":  "D:\\Python312\\python.exe (3.12.3)"
+                   },
+                   {
+                       "id":  "pandoc",
+                       "name":  "Pandoc 3.x / pypandoc-binary",
+                       "required":  true,
+                       "passed":  true,
+                       "status":  "PASS",
+                       "detail":  "C:\\Users\\86132\\AppData\\Roaming\\Python\\Python312\\site-packages\\pypandoc\\files\\pandoc.exe (pandoc 3.9)"
+                   },
+                   {
+                       "id":  "ocr",
+                       "name":  "OCR backend: Vlm",
+                       "required":  false,
+                       "passed":  true,
+                       "status":  "PASS",
+                       "detail":  "Vision API key is configured."
+                   }
+               ]
+}

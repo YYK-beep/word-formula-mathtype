@@ -4,3 +4,6 @@
 *.log.json
 __pycache__/
 .pytest_cache/
+!examples/formula-speed-test/*.docx
+!examples/formula-speed-test/*.pdf
+!examples/formula-speed-test/*.log.json

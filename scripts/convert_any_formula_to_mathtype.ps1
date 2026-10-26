@@ -20,7 +20,8 @@ param(
     [string]$WorkDir,
     [string]$PandocPath,
     [string]$PythonExe = 'python',
-    [switch]$Force
+    [switch]$Force,
+    [switch]$SkipPreflight
 )
 
 Set-StrictMode -Version Latest
@@ -29,6 +30,8 @@ $ErrorActionPreference = 'Stop'
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $extractScript = Join-Path $scriptDir 'extract_math_map.py'
 $ocrScript = Join-Path $scriptDir 'ocr_formula_image.py'
+$setupScript = Join-Path $scriptDir 'setup_environment.ps1'
+$preflightRuns = 0
 $wordFormatDocx = 16
 $wdAlignParagraphCenter = 1
 $sourcePath = (Resolve-Path -LiteralPath $SourcePath).Path
@@ -46,16 +49,10 @@ if (-not $DryRun -and (Test-Path -LiteralPath $targetPath) -and -not $Force) {
     throw "Target exists. Pass -Force to overwrite: $targetPath"
 }
 
-$targetDirectory = Split-Path -Parent $targetPath
-if (-not [string]::IsNullOrWhiteSpace($targetDirectory)) {
-    New-Item -ItemType Directory -Force -Path $targetDirectory | Out-Null
+$initialRequireOcr = @('Images','All') -contains $Mode
+if ($initialRequireOcr -and $OcrBackend -eq 'Manual' -and [string]::IsNullOrWhiteSpace($ManualOcrMapPath)) {
+    throw 'Manual OCR requires -ManualOcrMapPath.'
 }
-if ([string]::IsNullOrWhiteSpace($WorkDir)) {
-    $WorkDir = Join-Path ([IO.Path]::GetTempPath()) ('formula_mathtype_' + [guid]::NewGuid().ToString('N'))
-} else {
-    $WorkDir = [IO.Path]::GetFullPath($WorkDir)
-}
-New-Item -ItemType Directory -Force -Path $WorkDir | Out-Null
 
 function Assert-FileClosed {
     param([string]$Path, [string]$Label)
@@ -66,6 +63,24 @@ function Assert-FileClosed {
     } catch {
         throw "$Label is locked. Close it in Word and try again: $Path"
     }
+}
+
+function Invoke-Preflight {
+    param([bool]$RequireOcr)
+    if ($SkipPreflight) { return }
+    $windowsPowerShell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    if (-not (Test-Path -LiteralPath $windowsPowerShell)) {
+        $windowsPowerShell = (Get-Command powershell.exe -ErrorAction Stop).Source
+    }
+    $arguments = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $setupScript, '-OcrBackend', $OcrBackend)
+    if (-not [string]::IsNullOrWhiteSpace($PythonExe)) { $arguments += @('-PythonExe', $PythonExe) }
+    if (-not [string]::IsNullOrWhiteSpace($PandocPath)) { $arguments += @('-PandocPath', $PandocPath) }
+    if ($RequireOcr) { $arguments += '-RequireOcr' }
+    & $windowsPowerShell @arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Preflight failed. Install the missing required tools or use -SkipPreflight only after a manual environment check.'
+    }
+    $script:preflightRuns++
 }
 
 function Resolve-PythonCommand {
@@ -496,6 +511,19 @@ function Test-Overlap {
     return (-not ($EndA -le $StartB -or $StartA -ge $EndB))
 }
 
+Invoke-Preflight -RequireOcr $initialRequireOcr
+
+$targetDirectory = Split-Path -Parent $targetPath
+if (-not [string]::IsNullOrWhiteSpace($targetDirectory)) {
+    New-Item -ItemType Directory -Force -Path $targetDirectory | Out-Null
+}
+if ([string]::IsNullOrWhiteSpace($WorkDir)) {
+    $WorkDir = Join-Path ([IO.Path]::GetTempPath()) ('formula_mathtype_' + [guid]::NewGuid().ToString('N'))
+} else {
+    $WorkDir = [IO.Path]::GetFullPath($WorkDir)
+}
+New-Item -ItemType Directory -Force -Path $WorkDir | Out-Null
+
 $startTime = Get-Date
 $events = New-Object System.Collections.Generic.List[object]
 $ocrEvents = New-Object System.Collections.Generic.List[object]
@@ -574,6 +602,9 @@ try {
             $manualMap = Get-Content -LiteralPath (Resolve-Path -LiteralPath $ManualOcrMapPath).Path -Raw -Encoding UTF8 | ConvertFrom-Json
         }
         $imageShapes = @(Get-ImageShapeCandidates -Document $doc -Start $sectionStart -End $sectionEnd -Policy $ImagePolicy -Numbers $ImageNumbers)
+        if ($imageShapes.Count -gt 0 -and $OcrBackend -ne 'Manual') {
+            Invoke-Preflight -RequireOcr $true
+        }
         foreach ($image in $imageShapes) {
             $imagePath = $null
             $result = $null
@@ -678,6 +709,8 @@ try {
         latexMode = $LatexMode
         imagePolicy = $ImagePolicy
         dryRun = [bool]$DryRun
+        preflightSkipped = [bool]$SkipPreflight
+        preflightRuns = $preflightRuns
         sectionHeading = $SectionHeading
         selectedCandidates = $candidates.Count
         processed = $ordered.Count

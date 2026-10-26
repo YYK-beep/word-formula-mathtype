@@ -1,0 +1,162 @@
+﻿{
+    "summary":  {
+                    "source":  "D:\\读研工作\\项目1——排版工具\\tests\\speed_test\\formula_speed_test_input.docx",
+                    "target":  "D:\\读研工作\\项目1——排版工具\\tests\\speed_test\\formula_speed_test_mathtype_preflight.docx",
+                    "mode":  "Auto",
+                    "latexMode":  "Delimited",
+                    "imagePolicy":  "None",
+                    "dryRun":  false,
+                    "preflightSkipped":  false,
+                    "preflightRuns":  1,
+                    "sectionHeading":  "",
+                    "selectedCandidates":  12,
+                    "processed":  12,
+                    "ommlCandidates":  6,
+                    "latexCandidates":  6,
+                    "imageCandidates":  0,
+                    "converted":  12,
+                    "failed":  0,
+                    "remainingOMaths":  0,
+                    "mathTypeShapes":  12,
+                    "otherInlineShapes":  0,
+                    "remainingDollarCharacters":  0,
+                    "elapsedSeconds":  21.3
+                },
+    "ocr":  [
+
+            ],
+    "events":  [
+                   {
+                       "kind":  "Latex",
+                       "source":  "delimited",
+                       "status":  "converted",
+                       "start":  506,
+                       "latex":  "\\frac{\\partial u}{\\partial t}=\\alpha\\nabla^2u+f(x,t)",
+                       "display":  true,
+                       "confidence":  1,
+                       "shapeNumber":  0,
+                       "elapsedMs":  700
+                   },
+                   {
+                       "kind":  "Latex",
+                       "source":  "delimited",
+                       "status":  "converted",
+                       "start":  446,
+                       "latex":  "f(x)=\\begin{cases}x^2,\u0026x\\ge0\\\\-x,\u0026x\u003c0\\end{cases}",
+                       "display":  true,
+                       "confidence":  1,
+                       "shapeNumber":  0,
+                       "elapsedMs":  700
+                   },
+                   {
+                       "kind":  "Latex",
+                       "source":  "delimited",
+                       "status":  "converted",
+                       "start":  388,
+                       "latex":  "\\int_{-\\infty}^{\\infty}e^{-x^2}\\,dx=\\sqrt{\\pi}",
+                       "display":  true,
+                       "confidence":  1,
+                       "shapeNumber":  0,
+                       "elapsedMs":  700
+                   },
+                   {
+                       "kind":  "Latex",
+                       "source":  "delimited",
+                       "status":  "converted",
+                       "start":  328,
+                       "latex":  "\\nabla\\cdot\\mathbf{E}=\\frac{\\rho}{\\varepsilon_0}",
+                       "display":  false,
+                       "confidence":  1,
+                       "shapeNumber":  0,
+                       "elapsedMs":  700
+                   },
+                   {
+                       "kind":  "Latex",
+                       "source":  "delimited",
+                       "status":  "converted",
+                       "start":  296,
+                       "latex":  "z=\\frac{x-\\mu}{\\sigma}",
+                       "display":  false,
+                       "confidence":  1,
+                       "shapeNumber":  0,
+                       "elapsedMs":  700
+                   },
+                   {
+                       "kind":  "Latex",
+                       "source":  "delimited",
+                       "status":  "converted",
+                       "start":  222,
+                       "latex":  "f(x)=\\frac{1}{\\sqrt{2\\pi}\\sigma}e^{-\\frac{(x-\\mu)^2}{2\\sigma^2}}",
+                       "display":  false,
+                       "confidence":  1,
+                       "shapeNumber":  0,
+                       "elapsedMs":  700
+                   },
+                   {
+                       "kind":  "Omml",
+                       "source":  "omml",
+                       "status":  "converted",
+                       "start":  172,
+                       "latex":  "\\sum_{k = 1}^{n}k = \\frac{n(n + 1)}{2}",
+                       "display":  true,
+                       "confidence":  1,
+                       "shapeNumber":  0,
+                       "elapsedMs":  700
+                   },
+                   {
+                       "kind":  "Omml",
+                       "source":  "omml",
+                       "status":  "converted",
+                       "start":  136,
+                       "latex":  "\\begin{pmatrix}\n1 \u0026 2 \\\\\n3 \u0026 4\n\\end{pmatrix}\\begin{pmatrix}\nx \\\\\ny\n\\end{pmatrix} = \\begin{pmatrix}\n5 \\\\\n6\n\\end{pmatrix}",
+                       "display":  true,
+                       "confidence":  1,
+                       "shapeNumber":  0,
+                       "elapsedMs":  700
+                   },
+                   {
+                       "kind":  "Omml",
+                       "source":  "omml",
+                       "status":  "converted",
+                       "start":  105,
+                       "latex":  "\\int_{0}^{1}x^{2}\\, dx = \\frac{1}{3}",
+                       "display":  true,
+                       "confidence":  1,
+                       "shapeNumber":  0,
+                       "elapsedMs":  700
+                   },
+                   {
+                       "kind":  "Omml",
+                       "source":  "omml",
+                       "status":  "converted",
+                       "start":  74,
+                       "latex":  "\\lim_{x \\rightarrow 0}\\frac{\\sin x}{x} = 1",
+                       "display":  false,
+                       "confidence":  1,
+                       "shapeNumber":  0,
+                       "elapsedMs":  700
+                   },
+                   {
+                       "kind":  "Omml",
+                       "source":  "omml",
+                       "status":  "converted",
+                       "start":  43,
+                       "latex":  "a_{i} + b_{i} = c_{i}",
+                       "display":  false,
+                       "confidence":  1,
+                       "shapeNumber":  0,
+                       "elapsedMs":  700
+                   },
+                   {
+                       "kind":  "Omml",
+                       "source":  "omml",
+                       "status":  "converted",
+                       "start":  24,
+                       "latex":  "E = mc^{2}",
+                       "display":  false,
+                       "confidence":  1,
+                       "shapeNumber":  0,
+                       "elapsedMs":  700
+                   }
+               ]
+}
